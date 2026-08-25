@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hospital Staffing Assistant — Wireframe</title>
+<style>
+  :root{
+    --navy:#1F3864;
+    --accent:#2E74B5;
+    --accent-light:#E6F1FB;
+    --bg:#F3F5F8;
+    --card:#FFFFFF;
+    --border:#E2E6EC;
+    --text:#1A2233;
+    --text-secondary:#5B6472;
+    --text-muted:#8A93A3;
+    --success:#1B8E67;
+    --success-bg:#E4F6EF;
+    --warning:#B4670B;
+    --warning-bg:#FCF0DE;
+    --danger:#C23B33;
+    --danger-bg:#FBEAE8;
+    --physician:#2E74B5;
+    --nurse:#B4670B;
+    --assistant:#1B8E67;
+    --specialist:#6E4C9E;
+    --radius:12px;
+    --radius-sm:8px;
+    --shadow:0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:32px 24px 64px;}
+
+  /* header */
+  .header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+  .header-left{display:flex;align-items:flex-start;gap:14px;}
+  .logo{
+    width:44px;height:44px;border-radius:10px;background:var(--navy);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .header-title{font-size:19px;font-weight:600;margin:0;letter-spacing:-0.01em;}
+  .header-sub{font-size:13px;color:var(--text-secondary);margin:3px 0 0;}
+  .btn{
+    font-family:inherit;font-size:13px;font-weight:500;color:var(--text);
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    transition:background .15s ease, border-color .15s ease;
+  }
+  .btn:hover{background:#FAFBFC;border-color:#C9D0DB;}
+  .btn-primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .btn-primary:hover{background:#16294C;}
+  .btn-sm{font-size:12px;padding:7px 12px;white-space:nowrap;}
+
+  /* section shell */
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px 22px;box-shadow:var(--shadow);margin-bottom:16px;
+  }
+  .section-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;margin:0 0 3px;}
+  .section-sub{font-size:12.5px;color:var(--text-secondary);margin:0 0 16px;line-height:1.5;}
+  .badge{
+    font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;
+    padding:3px 9px;border-radius:100px;
+  }
+  .badge-model{background:var(--accent-light);color:var(--navy);}
+  .badge-sim{background:var(--warning-bg);color:var(--warning);}
+
+  /* forecast */
+  .forecast-row{display:flex;align-items:baseline;gap:10px;margin-top:14px;}
+  .forecast-num{font-size:32px;font-weight:700;letter-spacing:-0.02em;color:var(--navy);}
+  .forecast-label{font-size:13px;color:var(--text-secondary);}
+  input[type=range]{
+    width:100%;margin-top:10px;-webkit-appearance:none;appearance:none;
+    height:6px;border-radius:4px;background:var(--border);outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;
+    background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 1px var(--accent);cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid #fff;
+    box-shadow:0 0 0 1px var(--accent);cursor:pointer;
+  }
+  .slider-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:5px;}
+
+  /* role grid */
+  .role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  .role-card{
+    background:#FAFBFC;border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:14px 16px;border-left:3px solid var(--role-color,var(--accent));
+  }
+  .role-head{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+  .role-icon{
+    width:26px;height:26px;border-radius:7px;background:var(--role-color,var(--accent));
+    color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .role-name{font-size:13px;font-weight:600;}
+  .role-count-row{display:flex;align-items:baseline;gap:5px;}
+  .role-count{font-size:20px;font-weight:700;}
+  .role-count-label{font-size:11.5px;color:var(--text-muted);}
+  .role-bar-track{height:6px;background:var(--border);border-radius:4px;margin-top:9px;overflow:hidden;}
+  .role-bar-fill{height:6px;border-radius:4px;transition:width .25s ease, background .25s ease;}
+  .role-status{font-size:11.5px;margin:8px 0 0;display:flex;align-items:center;gap:5px;font-weight:500;}
+  .status-dot{width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700;flex-shrink:0;}
+
+  /* cost panel */
+  .cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+  .cost-stat{background:#FAFBFC;border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;}
+  .cost-stat-label{font-size:11.5px;color:var(--text-muted);margin:0 0 4px;}
+  .cost-stat-value{font-size:22px;font-weight:700;color:var(--navy);letter-spacing:-0.01em;}
+  .cost-delta{
+    display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius-sm);
+    font-size:13px;
+  }
+  .cost-delta-icon{
+    width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:700;flex-shrink:0;
+  }
+
+  /* alerts */
+  .alert-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;}
+  .alert-item{
+    display:flex;gap:12px;align-items:flex-start;padding:13px 15px;background:#FAFBFC;
+    border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:10px;
+  }
+  .alert-title{font-size:13px;font-weight:600;margin:0;}
+  .alert-sub{font-size:12px;color:var(--text-secondary);margin:3px 0 0;}
+  .alert-ok{
+    display:flex;gap:10px;align-items:center;padding:14px 16px;background:var(--success-bg);
+    border-radius:var(--radius-sm);color:var(--success);font-size:13px;font-weight:500;margin-top:10px;
+  }
+
+  .icon{width:16px;height:16px;flex-shrink:0;}
+  svg{display:block;}
+
+  @media (max-width:640px){
+    .role-grid{grid-template-columns:1fr;}
+    .cost-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3v18M3 12h18" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><rect x="4" y="4" width="16" height="16" rx="4" stroke="#fff" stroke-width="1.6"/></svg>
+      </div>
+      <div>
+        <p class="header-title">Hospital Staffing Assistant</p>
+        <p class="header-sub">Emergency department · tonight's shift · wireframe prototype</p>
+      </div>
+    </div>
+    <button class="btn" id="resetBtn">
+      <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Start over
+    </button>
+  </div>
+
+  <!-- Forecast -->
+  <div class="card">
+    <div class="section-title">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)"><path d="M3 3v18h18" stroke-width="2" stroke-linecap="round"/><path d="M7 15l4-4 3 3 5-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      How many patients are we expecting?
+      <span class="badge badge-model" style="margin-left:auto;">Forecast model</span>
+    </div>
+    <p class="section-sub">A prediction based on how this unit has trended on past shifts. Move the slider to see how staffing needs shift with demand.</p>
+    <svg id="fchart" viewBox="0 0 260 70" style="width:100%;height:70px;">
+      <polygon id="fband" points="" fill="var(--accent)" opacity="0.14"></polygon>
+      <polyline id="fline" points="" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+    </svg>
+    <div class="forecast-row">
+      <span class="forecast-num" id="volOut">38</span>
+      <span class="forecast-label">patients expected, give or take 5</span>
+    </div>
+    <input type="range" id="volSlider" min="25" max="55" step="1" value="38" aria-label="Adjust the predicted number of patients">
+    <div class="slider-labels"><span>Quiet night</span><span>Busy night</span></div>
+  </div>
+
+  <!-- Staffing -->
+  <div class="card">
+    <div class="section-title">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke-width="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke-width="2" stroke-linecap="round"/></svg>
+      Do we have the right staff scheduled?
+      <span class="badge badge-model" style="margin-left:auto;">Rule-based</span>
+    </div>
+    <p class="section-sub">Each role is compared against a staffing guideline for this predicted patient count. Guidelines are configurable — they can be set from hospital policy or calibrated from historical scheduling data, not fixed in the app.</p>
+    <div class="role-grid">
+
+      <div class="role-card" style="--role-color:var(--physician);">
+        <div class="role-head">
+          <div class="role-icon">MD</div>
+          <span class="role-name">Physicians</span>
+        </div>
+        <div class="role-count-row"><span class="role-count" id="physCount">4</span><span class="role-count-label">scheduled of <span id="physNeeded">4</span> needed</span></div>
+        <div class="role-bar-track"><div class="role-bar-fill" id="physBar" style="width:100%;background:var(--success);"></div></div>
+        <p class="role-status" id="physStatus" style="color:var(--success);"><span class="status-dot" style="background:var(--success);">✓</span>Fully staffed</p>
+      </div>
+
+      <div class="role-card" style="--role-color:var(--nurse);">
+        <div class="role-head">
+          <div class="role-icon">RN</div>
+          <span class="role-name">Registered nurses</span>
+        </div>
+        <div class="role-count-row"><span class="role-count" id="nurseCount">8</span><span class="role-count-label">scheduled of <span id="nurseNeeded">9</span> needed</span></div>
+        <div class="role-bar-track"><div class="role-bar-fill" id="nurseBar" style="width:89%;background:var(--warning);"></div></div>
+        <p class="role-status" id="nurseStatus" style="color:var(--warning);"><span class="status-dot" style="background:var(--warning);">!</span>Short by 1</p>
+      </div>
+
+      <div class="role-card" style="--role-color:var(--assistant);">
+        <div class="role-head">
+          <div class="role-icon">NA</div>
+          <span class="role-name">Nursing assistants</span>
+        </div>
+        <div class="role-count-row"><span class="role-count" id="naCount">5</span><span class="role-count-label">scheduled of <span id="naNeeded">5</span> needed</span></div>
+        <div class="role-bar-track"><div class="role-bar-fill" id="naBar" style="width:100%;background:var(--success);"></div></div>
+        <p class="role-status" id="naStatus" style="color:var(--success);"><span class="status-dot" style="background:var(--success);">✓</span>Fully staffed</p>
+      </div>
+
+      <div class="role-card" style="--role-color:var(--specialist);">
+        <div class="role-head">
+          <div class="role-icon">SP</div>
+          <span class="role-name">Specialist consultants</span>
+        </div>
+        <div class="role-count-row"><span class="role-count">1</span><span class="role-count-label">on call for this shift</span></div>
+        <div class="role-bar-track"><div class="role-bar-fill" style="width:100%;background:var(--specialist);"></div></div>
+        <p class="role-status" style="color:var(--text-secondary);"><span class="status-dot" style="background:var(--specialist);">•</span>Available, not volume-based</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Cost -->
+  <div class="card">
+    <div class="section-title">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)"><circle cx="12" cy="12" r="9" stroke-width="2"/><path d="M12 7v10M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 1-3 2.3c0 3 6 1.4 6 4.4 0 1.4-1.3 2.5-3 2.5s-3-1.1-3-2.5" stroke-width="1.8" stroke-linecap="round"/></svg>
+      What does this shift cost?
+      <span class="badge badge-model" style="margin-left:auto;">Cost model</span>
+    </div>
+    <p class="section-sub">Labor is the largest line item in hospital operating costs. This compares what tonight's schedule actually costs against what the recommendation above would cost.</p>
+    <div class="cost-grid">
+      <div class="cost-stat">
+        <p class="cost-stat-label">Scheduled cost, this shift</p>
+        <p class="cost-stat-value" id="scheduledCost">$16,788</p>
+      </div>
+      <div class="cost-stat">
+        <p class="cost-stat-label">Recommended cost, this shift</p>
+        <p class="cost-stat-value" id="recommendedCost">$17,484</p>
+      </div>
+    </div>
+    <div class="cost-delta" id="costDelta" style="background:var(--warning-bg);color:var(--warning);">
+      <div class="cost-delta-icon" style="background:var(--warning);color:#fff;">!</div>
+      <div>
+        <strong id="costDeltaHead">$696 under-covered</strong> — the current schedule costs less than the recommendation because a role is short-staffed, not because it's efficient. Filling gaps last-minute typically costs more (see alert below).
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="card">
+    <div class="alert-header">
+      <div>
+        <div class="section-title" style="margin-bottom:3px;">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.7 21a2 2 0 0 1-3.4 0" stroke-width="2" stroke-linecap="round"/></svg>
+          Is anything going wrong right now?
+        </div>
+        <p class="section-sub" style="margin-bottom:0;">Try it — simulate a nurse calling in sick and watch the alert and cost update.</p>
+      </div>
+      <button class="btn btn-primary btn-sm" id="callOutBtn">
+        <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" fill="#fff"/></svg>
+        Simulate a nurse calling out
+      </button>
+    </div>
+    <div id="alertArea"></div>
+  </div>
+
+</div>
+
+<script>
+var RATES = { phys: 175, nurse: 58, na: 28, specialist: 95 };
+var RATIOS = { phys: 12, nurse: 4.2, na: 9 };
+var SHIFT_HOURS = 12;
+var FLOAT_PREMIUM = 1.5;
+var LABELS = { phys: 'physician', nurse: 'nurse', na: 'nursing assistant' };
+var COLORS = { phys: 'var(--physician)', nurse: 'var(--nurse)', na: 'var(--assistant)' };
+
+var initial = { vol: 38, phys: 4, nurse: 8, na: 5, resolvedCount: 0 };
+var state = Object.assign({}, initial);
+
+function required(role, vol) { return Math.ceil(vol / RATIOS[role]); }
+function fmt(n) { return '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+function renderForecast() {
+  document.getElementById('volOut').textContent = state.vol;
+  var base = [0.62,0.55,0.6,0.42,0.46,0.32,0.36,0.3];
+  var scale = state.vol / 38;
+  var pts = base.map(function(v,i){ var y = 68 - (0.8 - v*0.9)*68*scale; y = Math.max(6,Math.min(60,y)); return (i*260/7)+','+y.toFixed(1); });
+  document.getElementById('fline').setAttribute('points', pts.join(' '));
+  var band = pts.map(function(pt){ var xy=pt.split(','); return xy[0]+','+(parseFloat(xy[1])+9); });
+  var bandRev = pts.slice().reverse().map(function(pt){ var xy=pt.split(','); return xy[0]+','+(parseFloat(xy[1])-9); });
+  document.getElementById('fband').setAttribute('points', band.concat(bandRev).join(' '));
+}
+
+function renderRole(role, elPrefix) {
+  var req = required(role, state.vol);
+  var sched = state[role];
+  var pct = Math.min(100, Math.round((sched/req)*100));
+  var ok = sched >= req;
+  document.getElementById(elPrefix+'Needed').textContent = req;
+  document.getElementById(elPrefix+'Count').textContent = sched;
+  var bar = document.getElementById(elPrefix+'Bar');
+  bar.style.width = pct + '%';
+  bar.style.background = ok ? 'var(--success)' : 'var(--warning)';
+  var statusEl = document.getElementById(elPrefix+'Status');
+  if (ok) {
+    statusEl.style.color = 'var(--success)';
+    statusEl.innerHTML = '<span class="status-dot" style="background:var(--success);">\u2713</span>Fully staffed';
+  } else {
+    var short = req - sched;
+    statusEl.style.color = 'var(--warning)';
+    statusEl.innerHTML = '<span class="status-dot" style="background:var(--warning);">!</span>Short by ' + short;
+  }
+  return req - sched;
+}
+
+function renderCost() {
+  var scheduledCost = RATES.phys*SHIFT_HOURS*state.phys + RATES.nurse*SHIFT_HOURS*state.nurse + RATES.na*SHIFT_HOURS*state.na + RATES.specialist*SHIFT_HOURS*1;
+  var reqPhys = required('phys', state.vol), reqNurse = required('nurse', state.vol), reqNa = required('na', state.vol);
+  var recommendedCost = RATES.phys*SHIFT_HOURS*reqPhys + RATES.nurse*SHIFT_HOURS*reqNurse + RATES.na*SHIFT_HOURS*reqNa + RATES.specialist*SHIFT_HOURS*1;
+  document.getElementById('scheduledCost').textContent = fmt(scheduledCost);
+  document.getElementById('recommendedCost').textContent = fmt(recommendedCost);
+  var delta = recommendedCost - scheduledCost;
+  var box = document.getElementById('costDelta');
+  var head = document.getElementById('costDeltaHead');
+  var icon = box.querySelector('.cost-delta-icon');
+  if (delta > 0) {
+    box.style.background = 'var(--warning-bg)'; box.style.color = 'var(--warning)';
+    icon.style.background = 'var(--warning)';
+    head.textContent = fmt(delta) + ' under-covered';
+    box.lastElementChild.innerHTML = '<strong>' + fmt(delta) + ' under-covered</strong> \u2014 the current schedule costs less than the recommendation because a role is short-staffed, not because it\u2019s efficient. Filling gaps last-minute typically costs more (see alert below).';
+  } else if (delta < 0) {
+    box.style.background = 'var(--danger-bg)'; box.style.color = 'var(--danger)';
+    icon.style.background = 'var(--danger)';
+    box.lastElementChild.innerHTML = '<strong>' + fmt(-delta) + ' potential savings</strong> \u2014 the current schedule costs more than what tonight\u2019s predicted volume actually needs. Trimming to the recommendation would free up this much.';
+  } else {
+    box.style.background = 'var(--success-bg)'; box.style.color = 'var(--success)';
+    icon.style.background = 'var(--success)';
+    box.lastElementChild.innerHTML = '<strong>On budget</strong> \u2014 the current schedule matches what tonight\u2019s predicted volume needs. No cost gap either direction.';
+  }
+  return { scheduledCost: scheduledCost, recommendedCost: recommendedCost };
+}
+
+function renderAlerts(gaps) {
+  var area = document.getElementById('alertArea');
+  var active = Object.keys(gaps).filter(function(r){ return gaps[r] > 0; });
+  if (active.length === 0) {
+    area.innerHTML = '<div class="alert-ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 13l4 4L19 7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Everything looks fully staffed right now.' +
+      (state.resolvedCount > 0 ? ' <span style="color:var(--text-muted);font-weight:400;">Fixed ' + state.resolvedCount + ' gap' + (state.resolvedCount>1?'s':'') + ' so far.</span>' : '') + '</div>';
+    return;
+  }
+  active.sort(function(a,b){ return gaps[b]-gaps[a]; });
+  area.innerHTML = active.map(function(role) {
+    var gap = gaps[role];
+    var severe = gap >= 2;
+    var floatCost = Math.round(RATES[role]*FLOAT_PREMIUM*SHIFT_HOURS*gap);
+    return '<div class="alert-item">' +
+      '<div class="status-dot" style="background:' + (severe?'var(--danger)':'var(--warning)') + ';flex-shrink:0;margin-top:1px;">' + (severe?'!!':'!') + '</div>' +
+      '<div style="flex:1;">' +
+        '<p class="alert-title">Not enough ' + LABELS[role] + (gap>1?'s':'') + ' scheduled</p>' +
+        '<p class="alert-sub">Short ' + gap + ' vs. plan \u00b7 ' + (severe?'Urgent':'Needs attention') + ' \u00b7 covering with float staff costs about ' + fmt(floatCost) + ' at premium rate</p>' +
+      '</div>' +
+      '<button class="btn btn-sm resolveBtn" data-role="' + role + '">Call in float coverage</button>' +
+    '</div>';
+  }).join('');
+  Array.prototype.forEach.call(area.querySelectorAll('.resolveBtn'), function(btn) {
+    btn.addEventListener('click', function() {
+      var role = btn.getAttribute('data-role');
+      state[role] += 1;
+      state.resolvedCount += 1;
+      renderAll();
+    });
+  });
+}
+
+function renderAll() {
+  renderForecast();
+  var gaps = {
+    phys: renderRole('phys','phys'),
+    nurse: renderRole('nurse','nurse'),
+    na: renderRole('na','na')
+  };
+  renderCost();
+  renderAlerts(gaps);
+}
+
+document.getElementById('volSlider').addEventListener('input', function(e){
+  state.vol = parseInt(e.target.value, 10);
+  renderAll();
+});
+document.getElementById('callOutBtn').addEventListener('click', function(){
+  if (state.nurse > 3) { state.nurse -= 1; renderAll(); }
+});
+document.getElementById('resetBtn').addEventListener('click', function(){
+  state = Object.assign({}, initial);
+  document.getElementById('volSlider').value = initial.vol;
+  renderAll();
+});
+
+renderAll();
+</script>
+</body>
+</html>

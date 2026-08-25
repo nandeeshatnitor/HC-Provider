@@ -1,0 +1,46 @@
+{
+  "unit_id": "ed-main",
+  "shift_hours": 12,
+  "roles": [
+    {
+      "role_id": "physician",
+      "display_name": "Physicians",
+      "ratio_per_patient": 12,
+      "fixed_count": null,
+      "hourly_rate": 175,
+      "overtime_multiplier": 1.5,
+      "max_overtime_headcount": 1,
+      "float_premium_multiplier": 1.8
+    },
+    {
+      "role_id": "nurse",
+      "display_name": "Registered nurses",
+      "ratio_per_patient": 4.2,
+      "fixed_count": null,
+      "hourly_rate": 58,
+      "overtime_multiplier": 1.5,
+      "max_overtime_headcount": 2,
+      "float_premium_multiplier": 1.8
+    },
+    {
+      "role_id": "assistant",
+      "display_name": "Nursing assistants",
+      "ratio_per_patient": 9,
+      "fixed_count": null,
+      "hourly_rate": 28,
+      "overtime_multiplier": 1.5,
+      "max_overtime_headcount": 2,
+      "float_premium_multiplier": 1.8
+    },
+    {
+      "role_id": "specialist",
+      "display_name": "Specialist consultants",
+      "ratio_per_patient": null,
+      "fixed_count": 1,
+      "hourly_rate": 95,
+      "overtime_multiplier": 1.5,
+      "max_overtime_headcount": 1,
+      "float_premium_multiplier": 1.0
+    }
+  ]
+}
