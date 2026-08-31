@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "backend",
-      "runtimeExecutable": "C:\\For claude\\Hackathon\\backend\\venv\\Scripts\\python.exe",
-      "runtimeArgs": ["-m", "uvicorn", "main:app", "--app-dir", "backend", "--port", "8010"],
+      "runtimeExecutable": "backend/venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "main:app", "--app-dir", "backend", "--port", "8010", "--reload"],
       "port": 8010
     },
     {

@@ -20,6 +20,14 @@ def test_forecast_today_returns_24_points_and_marks_current_hour():
     assert all(p.predicted_volume >= 0 for p in today.points)
 
 
+def test_total_predicted_matches_sum_of_hourly_points():
+    model = HourlyForecastModel(CSV_PATH)
+    today = model.forecast_today()
+    expected_total = round(sum(p.predicted_volume for p in today.points))
+    assert today.total_predicted == expected_total
+    assert today.total_predicted > 0
+
+
 def test_saturday_and_holiday_factors_are_learned_above_baseline():
     model = HourlyForecastModel(CSV_PATH)
     # generate_data.py seeds Saturday and holidays as busier than an ordinary day

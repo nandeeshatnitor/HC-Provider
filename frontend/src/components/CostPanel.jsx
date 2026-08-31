@@ -1,5 +1,5 @@
 function fmt(n) {
-  return "$" + Math.round(n).toLocaleString("en-US");
+  return "₹" + Math.round(n).toLocaleString("en-US");
 }
 
 const DELTA_COPY = {

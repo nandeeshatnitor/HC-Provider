@@ -50,6 +50,14 @@ export default function DailyForecastChart({ today }) {
 
   return (
     <div>
+      <div className="forecast-row" style={{ marginTop: 0, marginBottom: 12 }}>
+        <span className="forecast-num">{today.total_predicted}</span>
+        <span className="forecast-label">
+          patients expected in total today ({todayLabel}
+          {today.is_holiday ? ` · ${today.holiday_name}` : ""})
+        </span>
+      </div>
+
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} style={{ width: "100%", height: "auto" }}>
         {/* horizontal gridlines */}
         {[0.25, 0.5, 0.75, 1].map((f) => (

@@ -53,6 +53,7 @@ class TodayForecast(BaseModel):
     is_holiday: bool
     holiday_name: Optional[str] = None
     points: list[HourPoint]
+    total_predicted: int
     current_hour: int
     backtest_mape: float
     hourly_mae: float

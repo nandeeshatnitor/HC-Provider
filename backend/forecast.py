@@ -112,6 +112,7 @@ class HourlyForecastModel:
         now = now or datetime.now()
         today = now.date()
         points = [self.predict_hour(datetime.combine(today, datetime.min.time()) + timedelta(hours=h)) for h in range(24)]
+        total_predicted = round(sum(p.predicted_volume for p in points))
 
         return TodayForecast(
             unit_id=self.unit_id,
@@ -121,6 +122,7 @@ class HourlyForecastModel:
             is_holiday=today in HOLIDAYS,
             holiday_name=holiday_name(today),
             points=points,
+            total_predicted=total_predicted,
             current_hour=now.hour,
             backtest_mape=self.backtest_mape,
             hourly_mae=round(self.backtest_mae, 2),
