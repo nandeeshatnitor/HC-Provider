@@ -51,3 +51,30 @@ def build_cost_summary(
         delta=round(delta, 2),
         delta_label=label,
     )
+
+
+def aggregate_daily_cost_summary(block_summaries: list[CostSummary]) -> CostSummary:
+    """Sums several shift-length CostSummary blocks (e.g. today's day-half
+    and night-half) into one whole-day total, re-deriving the delta label
+    from the summed totals rather than summing the per-block labels."""
+    scheduled_cost = sum(b.scheduled_cost for b in block_summaries)
+    recommended_cost = sum(b.recommended_cost for b in block_summaries)
+    overtime_cost = sum(b.overtime_cost for b in block_summaries)
+    float_cost = sum(b.float_cost for b in block_summaries)
+
+    delta = recommended_cost - scheduled_cost
+    if delta > 0:
+        label = "understaffing_exposure"
+    elif delta < 0:
+        label = "overstaffing_waste"
+    else:
+        label = "on_budget"
+
+    return CostSummary(
+        scheduled_cost=round(scheduled_cost, 2),
+        recommended_cost=round(recommended_cost, 2),
+        overtime_cost=round(overtime_cost, 2),
+        float_cost=round(float_cost, 2),
+        delta=round(delta, 2),
+        delta_label=label,
+    )

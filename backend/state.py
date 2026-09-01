@@ -49,6 +49,8 @@ class SessionState:
         self.schedule: list[StaffMember] = _seed_schedule()
         self.nurses: list[Nurse] = seed_nurses()
         self.alerts: dict[str, Alert] = {}
+        self.actual_patients_so_far: Optional[int] = None
+        self.actual_as_of_hour: Optional[int] = None
         self._sync_alerts()
 
     def _full_schedule(self) -> list[StaffMember]:
@@ -98,6 +100,20 @@ class SessionState:
 
     def active_alerts(self) -> list[Alert]:
         return [a for a in self.alerts.values() if a.status == "active"]
+
+    # --- today's actual patient count (admin) -------------------------
+
+    def set_actual_patient_count(self, count: int, as_of_hour: Optional[int] = None):
+        if count < 0:
+            raise ValueError("Patient count cannot be negative")
+        if as_of_hour is not None and not (0 <= as_of_hour <= 23):
+            raise ValueError("as_of_hour must be between 0 and 23")
+        self.actual_patients_so_far = count
+        self.actual_as_of_hour = as_of_hour
+
+    def clear_actual_patient_count(self):
+        self.actual_patients_so_far = None
+        self.actual_as_of_hour = None
 
     # --- nurse roster (admin) ---------------------------------------
 
@@ -169,4 +185,6 @@ class SessionState:
         self.schedule = _seed_schedule()
         self.nurses = seed_nurses()
         self.alerts = {}
+        self.actual_patients_so_far = None
+        self.actual_as_of_hour = None
         self._sync_alerts()

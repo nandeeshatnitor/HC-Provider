@@ -18,6 +18,14 @@ async function request(path, options) {
 export const api = {
   getForecast: () => request("/forecast"),
   getTodayForecast: () => request("/forecast/today"),
+  getTodayCostSummary: () => request("/cost-summary/today"),
+  postActualCount: (count) =>
+    request("/today/actual-count", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ count }),
+    }),
+  clearActualCount: () => request("/today/actual-count/clear", { method: "POST" }),
   getStaffingConfig: () => request("/staffing-config"),
   getStaffingPlan: (predictedVolume) =>
     request(`/staffing-plan?predicted_volume=${predictedVolume}`),

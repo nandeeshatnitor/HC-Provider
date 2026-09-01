@@ -5,6 +5,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from cost import aggregate_daily_cost_summary, build_cost_summary
 from forecast import HourlyForecastModel
 from models import (
     AlertsResponse,
@@ -62,7 +63,47 @@ def get_forecast():
 
 @app.get("/api/forecast/today", response_model=TodayForecast)
 def get_forecast_today():
+    return forecast_model.forecast_today(
+        actual_so_far=state.actual_patients_so_far,
+        actual_as_of_hour=state.actual_as_of_hour,
+    )
+
+
+@app.post("/api/today/actual-count", response_model=TodayForecast)
+def post_actual_count(body: dict):
+    count = body.get("count")
+    if count is None:
+        raise ValueError("count is required")
+    state.set_actual_patient_count(int(count))
+    return forecast_model.forecast_today(
+        actual_so_far=state.actual_patients_so_far,
+        actual_as_of_hour=state.actual_as_of_hour,
+    )
+
+
+@app.post("/api/today/actual-count/clear", response_model=TodayForecast)
+def post_clear_actual_count():
+    state.clear_actual_patient_count()
     return forecast_model.forecast_today()
+
+
+@app.get("/api/cost-summary/today", response_model=CostSummary)
+def get_cost_summary_today():
+    """Total estimated cost for the whole day: the day's predicted volume
+    split into shift_hours-sized blocks (e.g. two 12-hour halves), each
+    costed against the current roster via the same optimizer used for the
+    single-shift cost panel, then summed."""
+    today = forecast_model.forecast_today()
+    shift_hours = int(staffing_config.shift_hours)
+    block_summaries = []
+    for start in range(0, 24, shift_hours):
+        block_points = today.points[start:start + shift_hours]
+        if not block_points:
+            continue
+        block_volume = max(1, round(sum(p.predicted_volume for p in block_points)))
+        block_plan = state.plan(block_volume)
+        block_summaries.append(build_cost_summary(staffing_config.roles, block_plan, shift_hours))
+    return aggregate_daily_cost_summary(block_summaries)
 
 
 @app.get("/api/staffing-plan", response_model=StaffingPlan)

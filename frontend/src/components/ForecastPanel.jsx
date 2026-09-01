@@ -1,10 +1,17 @@
 import DailyForecastChart from "./DailyForecastChart";
 
-export default function ForecastPanel({ forecast, todayForecast, volume, onVolumeChange }) {
-  if (!forecast) return null;
+function fmt(n) {
+  return "₹" + Math.round(n).toLocaleString("en-US");
+}
 
-  const min = Math.max(1, forecast.predicted_volume - 15);
-  const max = forecast.predicted_volume + 15;
+export default function ForecastPanel({
+  forecast,
+  todayForecast,
+  todayCostSummary,
+  onActualCountSubmit,
+  onActualCountClear,
+}) {
+  if (!forecast) return null;
 
   return (
     <div className="card">
@@ -15,43 +22,42 @@ export default function ForecastPanel({ forecast, todayForecast, volume, onVolum
         </svg>
         How many patients are we expecting today?
         <span className="badge badge-model" style={{ marginLeft: "auto" }}>
-          Forecast model
+          Regression model
         </span>
       </div>
       <p className="section-sub">
-        Predicted arrivals per hour, learned from how this unit trends by time of day, day of
-        week, and holidays. The dashed line marks right now.
+        A fitted regression curve (not a lookup table) — a daily rhythm learned from time of day,
+        plus day-of-week and holiday adjustments. The dashed line marks right now.
       </p>
 
-      <DailyForecastChart today={todayForecast} />
+      <DailyForecastChart
+        today={todayForecast}
+        onActualCountSubmit={onActualCountSubmit}
+        onActualCountClear={onActualCountClear}
+      />
+
+      {todayCostSummary && (
+        <div className="today-cost-callout">
+          <div>
+            <p className="cost-stat-label">Total estimated cost for today (all shifts)</p>
+            <p className="cost-stat-value">{fmt(todayCostSummary.recommended_cost)}</p>
+          </div>
+          <div>
+            <p className="cost-stat-label">vs. current roster on the clock all day</p>
+            <p className="cost-stat-value" style={{ color: "var(--text-secondary)" }}>
+              {fmt(todayCostSummary.scheduled_cost)}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="section-title" style={{ marginTop: 22 }}>
         Staffing window
       </div>
       <p className="section-sub">
-        Sum of the predicted arrivals over the staffing window — {forecast.shift_label}. Move the
-        slider to see how staffing needs — and the cost of covering them — shift with demand.
+        The staffing plan and this-shift cost below are driven automatically by the model's own
+        forecast — {forecast.shift_label}, {forecast.predicted_volume} patients expected (±{forecast.confidence_range}).
       </p>
-
-      <div className="forecast-row">
-        <span className="forecast-num">{volume}</span>
-        <span className="forecast-label">
-          patients expected, give or take {forecast.confidence_range}
-        </span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={1}
-        value={volume}
-        onChange={(e) => onVolumeChange(parseInt(e.target.value, 10))}
-        aria-label="Adjust the predicted number of patients"
-      />
-      <div className="slider-labels">
-        <span>Quiet shift</span>
-        <span>Busy shift</span>
-      </div>
       <p className="forecast-caption">
         Model backtested at {forecast.backtest_mape}% MAPE against held-out historical shifts.
       </p>

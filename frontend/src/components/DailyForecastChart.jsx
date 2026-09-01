@@ -19,7 +19,88 @@ function fmtHourShort(h) {
   return `${label}${hour < 12 ? "a" : "p"}`;
 }
 
-export default function DailyForecastChart({ today }) {
+function fmtSigned(n) {
+  const rounded = Math.round(n * 100) / 100;
+  return rounded >= 0 ? `+${rounded}` : `${rounded}`;
+}
+
+function ActualCountForm({ today, onSubmit, onClear }) {
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const count = parseInt(value, 10);
+    if (Number.isNaN(count) || count < 0) {
+      setError("Enter a non-negative number");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await onSubmit(count);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleClear() {
+    setBusy(true);
+    setError(null);
+    try {
+      await onClear();
+      setValue("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="actual-count-form">
+      <form onSubmit={handleSubmit} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <label htmlFor="actual-count">How many patients have come in so far today?</label>
+        <input
+          id="actual-count"
+          className="actual-count-input"
+          type="number"
+          min="0"
+          placeholder="e.g. 40"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          disabled={busy}
+        />
+        <button className="btn btn-sm btn-primary" type="submit" disabled={busy}>
+          Update
+        </button>
+        {today.actual_so_far != null && (
+          <button className="btn btn-sm" type="button" onClick={handleClear} disabled={busy}>
+            Clear
+          </button>
+        )}
+      </form>
+      {error && <p className="error-note" style={{ padding: 0, margin: "4px 0 0" }}>{error}</p>}
+      {today.actual_so_far != null ? (
+        <p className="actual-count-note">
+          {today.actual_so_far} actual so far (as of {today.points[today.actual_as_of_hour]?.label}) +{" "}
+          {today.remaining_predicted} predicted for the rest of the day ={" "}
+          <strong>{today.revised_total_today} revised estimate</strong> (model alone said{" "}
+          {today.model_total_today}).
+        </p>
+      ) : (
+        <p className="actual-count-note">
+          Not reported yet — showing the model's own prediction ({today.model_total_today}).
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function DailyForecastChart({ today, onActualCountSubmit, onActualCountClear }) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -45,13 +126,14 @@ export default function DailyForecastChart({ today }) {
   const markerX = x(nowFracHour);
   const markerY = y(currentValue);
 
-  const dowEntries = Object.entries(today.dow_factors);
+  const dowEntries = Object.entries(today.dow_adjustments);
   const todayLabel = today.day_of_week;
+  const displayTotal = today.actual_so_far != null ? today.revised_total_today : today.model_total_today;
 
   return (
     <div>
       <div className="forecast-row" style={{ marginTop: 0, marginBottom: 12 }}>
-        <span className="forecast-num">{today.total_predicted}</span>
+        <span className="forecast-num">{displayTotal}</span>
         <span className="forecast-label">
           patients expected in total today ({todayLabel}
           {today.is_holiday ? ` · ${today.holiday_name}` : ""})
@@ -99,22 +181,27 @@ export default function DailyForecastChart({ today }) {
         )}
       </div>
 
+      {onActualCountSubmit && (
+        <ActualCountForm today={today} onSubmit={onActualCountSubmit} onClear={onActualCountClear} />
+      )}
+
       <details className="calc-details">
         <summary>Show the calculation</summary>
         <p className="calc-line">
-          <strong>{floor.base}</strong> avg arrivals in the {floor.label} hour
-          {" × "}
-          <strong>{floor.dow_factor}×</strong> {todayLabel} factor
-          {floor.is_holiday && (
+          <strong>{floor.daily_rhythm}</strong> from the fitted daily curve at {floor.label}
+          {" "}
+          {floor.day_type_adjustment !== 0 && (
             <>
-              {" × "}
-              <strong>{floor.holiday_factor}×</strong> holiday factor
+              {floor.day_type_adjustment > 0 ? "+ " : "− "}
+              <strong>{Math.abs(floor.day_type_adjustment)}</strong> {todayLabel}
+              {floor.is_holiday ? "/holiday" : ""} adjustment{" "}
             </>
           )}
-          {" = "}
+          {"= "}
           <strong>{floor.predicted_volume}</strong> expected patients that hour.
         </p>
         <p className="calc-caption">
+          Fit by linear regression on a 2-cycle Fourier daily curve + day-of-week/holiday terms.
           Backtested to within ±{today.hourly_mae} patients/hour on held-out historical data
           ({today.backtest_mape}% error at the 12-hour aggregate level used for staffing).
         </p>
@@ -122,19 +209,19 @@ export default function DailyForecastChart({ today }) {
           <thead>
             <tr>
               <th>Day</th>
-              <th>Learned factor</th>
+              <th>Learned adjustment</th>
             </tr>
           </thead>
           <tbody>
-            {dowEntries.map(([day, factor]) => (
+            {dowEntries.map(([day, adjustment]) => (
               <tr key={day} className={day === todayLabel ? "calc-row-today" : ""}>
                 <td>{day}</td>
-                <td>{factor}×</td>
+                <td>{fmtSigned(adjustment)} patients/hour</td>
               </tr>
             ))}
             <tr>
               <td>Holiday (e.g. Diwali, Holi)</td>
-              <td>{today.holiday_factor}×</td>
+              <td>{fmtSigned(today.holiday_adjustment)} patients/hour</td>
             </tr>
           </tbody>
         </table>

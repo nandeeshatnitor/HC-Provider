@@ -1,5 +1,5 @@
 function fmt(n) {
-  return "$" + Math.round(n).toLocaleString("en-US");
+  return "₹" + Math.round(n).toLocaleString("en-US");
 }
 
 export default function AlertPanel({ alerts, onResolve, onSimulateCallOut, resolvingId, simulating }) {

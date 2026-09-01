@@ -39,9 +39,8 @@ class HourPoint(BaseModel):
     hour: int
     label: str
     predicted_volume: float
-    base: float
-    dow_factor: float
-    holiday_factor: float
+    daily_rhythm: float
+    day_type_adjustment: float
     is_holiday: bool
 
 
@@ -53,12 +52,17 @@ class TodayForecast(BaseModel):
     is_holiday: bool
     holiday_name: Optional[str] = None
     points: list[HourPoint]
-    total_predicted: int
+    model_total_today: int
+    actual_so_far: Optional[int] = None
+    actual_as_of_hour: Optional[int] = None
+    remaining_predicted: Optional[float] = None
+    revised_total_today: int
     current_hour: int
     backtest_mape: float
     hourly_mae: float
-    dow_factors: dict[str, float]
-    holiday_factor: float
+    dow_adjustments: dict[str, float]
+    holiday_adjustment: float
+    model_type: str
 
 
 class StaffMember(BaseModel):

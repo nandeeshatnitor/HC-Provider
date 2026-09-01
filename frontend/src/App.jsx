@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "./api";
 import Header from "./components/Header";
 import ForecastPanel from "./components/ForecastPanel";
@@ -38,7 +38,7 @@ export default function App() {
   const [roleConfig, setRoleConfig] = useState([]);
   const [forecast, setForecast] = useState(null);
   const [todayForecast, setTodayForecast] = useState(null);
-  const [stagingVolume, setStagingVolume] = useState(null);
+  const [todayCostSummary, setTodayCostSummary] = useState(null);
   const [plan, setPlan] = useState([]);
   const [costSummary, setCostSummary] = useState(null);
   const [alerts, setAlerts] = useState([]);
@@ -47,8 +47,6 @@ export default function App() {
   const [simulating, setSimulating] = useState(false);
   const [resolvingId, setResolvingId] = useState(null);
   const [resetting, setResetting] = useState(false);
-
-  const debounceRef = useRef(null);
 
   async function refreshPlanAndCost(volume) {
     const [planRes, costRes, alertsRes] = await Promise.all([
@@ -65,15 +63,18 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const [configRes, forecastRes, todayRes] = await Promise.all([
+      const [configRes, forecastRes, todayRes, todayCostRes] = await Promise.all([
         api.getStaffingConfig(),
         api.getForecast(),
         api.getTodayForecast(),
+        api.getTodayCostSummary(),
       ]);
       setRoleConfig(configRes.roles);
       setForecast(forecastRes);
       setTodayForecast(todayRes);
-      setStagingVolume(forecastRes.predicted_volume);
+      setTodayCostSummary(todayCostRes);
+      // Staffing is driven automatically by the model's own forecast for the
+      // upcoming shift window — no manual override.
       await refreshPlanAndCost(forecastRes.predicted_volume);
     } catch (e) {
       setError(e.message);
@@ -91,18 +92,20 @@ export default function App() {
   // the staffing plan server-side. Refetch when coming back to the
   // dashboard so it doesn't show stale pre-navigation numbers.
   useEffect(() => {
-    if (route === "dashboard" && stagingVolume != null && !loading) {
-      refreshPlanAndCost(stagingVolume).catch((e) => setError(e.message));
+    if (route === "dashboard" && forecast && !loading) {
+      refreshPlanAndCost(forecast.predicted_volume).catch((e) => setError(e.message));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
 
-  function handleVolumeChange(vol) {
-    setStagingVolume(vol);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      refreshPlanAndCost(vol).catch((e) => setError(e.message));
-    }, 150);
+  async function handleActualCountSubmit(count) {
+    const res = await api.postActualCount(count);
+    setTodayForecast(res);
+  }
+
+  async function handleActualCountClear() {
+    const res = await api.clearActualCount();
+    setTodayForecast(res);
   }
 
   async function handleSimulateCallOut() {
@@ -173,8 +176,9 @@ export default function App() {
               <ForecastPanel
                 forecast={forecast}
                 todayForecast={todayForecast}
-                volume={stagingVolume}
-                onVolumeChange={handleVolumeChange}
+                todayCostSummary={todayCostSummary}
+                onActualCountSubmit={handleActualCountSubmit}
+                onActualCountClear={handleActualCountClear}
               />
               <StaffingPanel roleConfig={roleConfig} plan={plan} />
               <CostPanel costSummary={costSummary} />

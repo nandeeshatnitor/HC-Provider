@@ -140,3 +140,41 @@ def test_unknown_nurse_id_raises_key_error():
         state.set_nurse_present("does-not-exist", False)
     with pytest.raises(KeyError):
         state.set_nurse_assignment("does-not-exist", True, "Bed 1")
+
+
+# --- actual patient count (admin) --------------------------------------
+
+
+def test_set_actual_patient_count_stores_value():
+    state = SessionState(make_config(), default_volume=38)
+    state.set_actual_patient_count(42, as_of_hour=14)
+    assert state.actual_patients_so_far == 42
+    assert state.actual_as_of_hour == 14
+
+
+def test_set_actual_patient_count_rejects_negative():
+    state = SessionState(make_config(), default_volume=38)
+    with pytest.raises(ValueError):
+        state.set_actual_patient_count(-1)
+
+
+def test_set_actual_patient_count_rejects_bad_hour():
+    state = SessionState(make_config(), default_volume=38)
+    with pytest.raises(ValueError):
+        state.set_actual_patient_count(10, as_of_hour=24)
+
+
+def test_clear_actual_patient_count():
+    state = SessionState(make_config(), default_volume=38)
+    state.set_actual_patient_count(42, as_of_hour=14)
+    state.clear_actual_patient_count()
+    assert state.actual_patients_so_far is None
+    assert state.actual_as_of_hour is None
+
+
+def test_reset_clears_actual_patient_count():
+    state = SessionState(make_config(), default_volume=38)
+    state.set_actual_patient_count(42, as_of_hour=14)
+    state.reset()
+    assert state.actual_patients_so_far is None
+    assert state.actual_as_of_hour is None

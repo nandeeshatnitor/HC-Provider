@@ -1,19 +1,28 @@
-"""Explainable hourly patient-arrival forecasting.
+"""Hourly patient-arrival forecasting via a fitted regression curve.
 
-Rather than a black-box regressor, this decomposes historical arrivals
-multiplicatively into three learned, inspectable factors:
+This is a real (if small) ML model: ordinary least-squares linear
+regression (scikit-learn) fit on:
+  - a 2-harmonic Fourier expansion of hour-of-day (sin/cos terms), which
+    lets the model fit a smooth curve with two peaks (morning + evening)
+    instead of just averaging each hour's historical arrivals,
+  - one-hot day-of-week dummies (Monday is the reference day),
+  - a holiday dummy.
 
-    predicted(hour, day_of_week, is_holiday)
-        = hourly_baseline[hour] * dow_factor[day_of_week] * (holiday_factor if is_holiday else 1)
+predicted(hour, day_of_week, is_holiday) = model.predict([fourier(hour), dow_dummies, is_holiday])
 
-Each factor is computed from real historical data (see data/generate_data.py
-for how that history was produced), not hand-set — so "Saturdays run busier"
-and "holidays run busier" are genuinely learned, and the breakdown is cheap
-to show verbatim in the UI (the whole point of this module).
+The model is still explainable: dow_adjustment[d] and holiday_adjustment
+are literally the fitted regression coefficients for those terms (an
+additive patients/hour delta versus an ordinary Monday), and
+daily_rhythm is what the curve alone predicts for that hour on an
+ordinary non-holiday Monday. predicted_volume = daily_rhythm + the
+applicable day-type adjustment(s) — a real, inspectable decomposition
+of the regression's own output, not a separate hand-built formula.
 """
 from datetime import datetime, timedelta
 
+import numpy as np
 import pandas as pd
+from sklearn.linear_model import LinearRegression
 
 from holidays import HOLIDAYS, holiday_name
 from models import HourPoint, ForecastResult, TodayForecast
@@ -22,6 +31,14 @@ WEEKDAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturd
 HOUR_LABELS = [f"{h % 12 or 12} {'AM' if h < 12 else 'PM'}" for h in range(24)]
 
 BACKTEST_DAYS = 30
+FOURIER_HARMONICS = 2  # 2 harmonics is enough to fit a bimodal (morning+evening) daily curve
+DOW_DUMMY_DAYS = [1, 2, 3, 4, 5, 6]  # Tue..Sun; Monday (0) is the reference category
+FEATURE_COLUMNS = (
+    [c for k in range(1, FOURIER_HARMONICS + 1) for c in (f"sin{k}", f"cos{k}")]
+    + [f"dow_{d}" for d in DOW_DUMMY_DAYS]
+    + ["is_holiday"]
+)
+MODEL_TYPE = "Linear regression (Fourier daily curve + day-of-week/holiday terms)"
 
 
 class HourlyForecastModel:
@@ -29,28 +46,33 @@ class HourlyForecastModel:
         self.unit_id = unit_id
         self.df = self._load(csv_path)
         self.backtest_mape, self.backtest_mae = self._backtest(self.df)
-        # factors used for actual predictions are fit on the full history
-        self.hourly_baseline, self.dow_factor, self.holiday_factor = self._fit_factors(self.df)
+        # the production model is fit on the full history
+        self.model = self._fit(self.df)
+        self.dow_adjustment, self.holiday_adjustment = self._extract_day_effects()
 
     @staticmethod
     def _load(csv_path: str) -> pd.DataFrame:
         df = pd.read_csv(csv_path, parse_dates=["date"])
         df["is_holiday"] = df["is_holiday"].astype(bool)
-        df = df.sort_values(["date", "hour"]).reset_index(drop=True)
-        return df
+        return df.sort_values(["date", "hour"]).reset_index(drop=True)
 
     @staticmethod
-    def _fit_factors(df: pd.DataFrame):
-        hourly_baseline = df.groupby("hour")["arrivals"].mean()
+    def _feature_frame(df: pd.DataFrame) -> pd.DataFrame:
+        hours = df["hour"].astype(float)
+        frame = pd.DataFrame(index=df.index)
+        for k in range(1, FOURIER_HARMONICS + 1):
+            angle = 2 * np.pi * k * hours / 24
+            frame[f"sin{k}"] = np.sin(angle)
+            frame[f"cos{k}"] = np.cos(angle)
+        for d in DOW_DUMMY_DAYS:
+            frame[f"dow_{d}"] = (df["day_of_week"] == d).astype(float)
+        frame["is_holiday"] = df["is_holiday"].astype(float)
+        return frame[FEATURE_COLUMNS]
 
-        ratio1 = df["arrivals"] / df["hour"].map(hourly_baseline).clip(lower=0.1)
-        dow_factor = ratio1.groupby(df["day_of_week"]).mean()
-
-        ratio2 = ratio1 / df["day_of_week"].map(dow_factor).clip(lower=0.1)
-        holiday_rows = ratio2[df["is_holiday"]]
-        holiday_factor = float(holiday_rows.mean()) if len(holiday_rows) else 1.0
-
-        return hourly_baseline.to_dict(), dow_factor.to_dict(), holiday_factor
+    def _fit(self, df: pd.DataFrame) -> LinearRegression:
+        model = LinearRegression()
+        model.fit(self._feature_frame(df), df["arrivals"])
+        return model
 
     def _backtest(self, df: pd.DataFrame):
         """Returns (shift_level_mape, hourly_mae).
@@ -66,16 +88,8 @@ class HourlyForecastModel:
         if test.empty:
             return 0.0, 0.0
 
-        baseline, dow, holiday = self._fit_factors(train)
-        overall_mean = train["arrivals"].mean()
-
-        def predict_row(row):
-            base = baseline.get(row["hour"], overall_mean)
-            dow_f = dow.get(row["day_of_week"], 1.0)
-            hol_f = holiday if row["is_holiday"] else 1.0
-            return base * dow_f * hol_f
-
-        test["predicted"] = test.apply(predict_row, axis=1)
+        model = self._fit(train)
+        test["predicted"] = model.predict(self._feature_frame(test))
         hourly_errors = (test["arrivals"] - test["predicted"]).abs()
         hourly_mae = float(hourly_errors.mean())
 
@@ -87,32 +101,60 @@ class HourlyForecastModel:
 
         return round(shift_mape, 1), hourly_mae
 
+    def _extract_day_effects(self):
+        coef = dict(zip(FEATURE_COLUMNS, self.model.coef_))
+        dow_adjustment = {0: 0.0}  # Monday is the reference category, coefficient 0 by construction
+        for d in DOW_DUMMY_DAYS:
+            dow_adjustment[d] = float(coef[f"dow_{d}"])
+        holiday_adjustment = float(coef["is_holiday"])
+        return dow_adjustment, holiday_adjustment
+
+    def _predict_row(self, hour: int, dow: int, is_holiday: bool) -> tuple[float, float, float]:
+        """Returns (predicted_volume, daily_rhythm, day_type_adjustment)."""
+        row = pd.DataFrame([{"hour": hour, "day_of_week": dow, "is_holiday": is_holiday}])
+        predicted = float(self.model.predict(self._feature_frame(row))[0])
+
+        baseline_row = pd.DataFrame([{"hour": hour, "day_of_week": 0, "is_holiday": False}])
+        daily_rhythm = float(self.model.predict(self._feature_frame(baseline_row))[0])
+
+        day_type_adjustment = predicted - daily_rhythm
+        return max(0.1, predicted), daily_rhythm, day_type_adjustment
+
     def predict_hour(self, dt: datetime) -> HourPoint:
         d = dt.date()
         hour = dt.hour
         dow = dt.weekday()
         is_hol = d in HOLIDAYS
 
-        base = self.hourly_baseline.get(hour, sum(self.hourly_baseline.values()) / 24)
-        dow_f = self.dow_factor.get(dow, 1.0)
-        hol_f = self.holiday_factor if is_hol else 1.0
-        predicted = base * dow_f * hol_f
+        predicted, daily_rhythm, day_type_adjustment = self._predict_row(hour, dow, is_hol)
 
         return HourPoint(
             hour=hour,
             label=HOUR_LABELS[hour],
             predicted_volume=round(predicted, 1),
-            base=round(base, 2),
-            dow_factor=round(dow_f, 2),
-            holiday_factor=round(hol_f, 2),
+            daily_rhythm=round(daily_rhythm, 2),
+            day_type_adjustment=round(day_type_adjustment, 2),
             is_holiday=is_hol,
         )
 
-    def forecast_today(self, now: datetime | None = None) -> TodayForecast:
+    def forecast_today(
+        self,
+        now: datetime | None = None,
+        actual_so_far: int | None = None,
+        actual_as_of_hour: int | None = None,
+    ) -> TodayForecast:
         now = now or datetime.now()
         today = now.date()
         points = [self.predict_hour(datetime.combine(today, datetime.min.time()) + timedelta(hours=h)) for h in range(24)]
-        total_predicted = round(sum(p.predicted_volume for p in points))
+        model_total_today = round(sum(p.predicted_volume for p in points))
+
+        remaining_predicted = None
+        revised_total_today = model_total_today
+        as_of = None
+        if actual_so_far is not None:
+            as_of = actual_as_of_hour if actual_as_of_hour is not None else now.hour
+            remaining_predicted = sum(p.predicted_volume for p in points if p.hour > as_of)
+            revised_total_today = round(actual_so_far + remaining_predicted)
 
         return TodayForecast(
             unit_id=self.unit_id,
@@ -122,12 +164,17 @@ class HourlyForecastModel:
             is_holiday=today in HOLIDAYS,
             holiday_name=holiday_name(today),
             points=points,
-            total_predicted=total_predicted,
+            model_total_today=model_total_today,
+            actual_so_far=actual_so_far,
+            actual_as_of_hour=as_of,
+            remaining_predicted=round(remaining_predicted, 1) if remaining_predicted is not None else None,
+            revised_total_today=revised_total_today,
             current_hour=now.hour,
             backtest_mape=self.backtest_mape,
             hourly_mae=round(self.backtest_mae, 2),
-            dow_factors={WEEKDAY_NAMES[d]: round(f, 2) for d, f in sorted(self.dow_factor.items())},
-            holiday_factor=round(self.holiday_factor, 2),
+            dow_adjustments={WEEKDAY_NAMES[d]: round(f, 2) for d, f in sorted(self.dow_adjustment.items())},
+            holiday_adjustment=round(self.holiday_adjustment, 2),
+            model_type=MODEL_TYPE,
         )
 
     def shift_volume_from_now(self, shift_hours: int, now: datetime | None = None) -> ForecastResult:
